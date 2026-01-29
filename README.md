@@ -199,7 +199,6 @@ struct DataView: View {
 ```swift
 let config = HimetricaConfig(
     apiKey: "your-api-key",
-    apiUrl: "https://app.himetrica.com",  // Custom API URL (self-hosted)
     sessionTimeout: 30 * 60,               // Session timeout (default: 30 min)
     autoTrackScreenViews: true,            // Auto-track NavigationStack
     respectAdTracking: true,               // Respect ATT settings
@@ -361,7 +360,6 @@ ContentView()
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `apiKey` | `String` | required | Your Himetrica API key |
-| `apiUrl` | `String` | `https://app.himetrica.com` | API endpoint URL |
 | `sessionTimeout` | `TimeInterval` | `1800` (30 min) | Session expiry time |
 | `autoTrackScreenViews` | `Bool` | `true` | Auto-track navigation |
 | `respectAdTracking` | `Bool` | `true` | Respect ATT settings |
@@ -410,17 +408,6 @@ To track regardless of ATT (ensure compliance with Apple guidelines):
 
 ```swift
 HimetricaConfig(apiKey: "key", respectAdTracking: false)
-```
-
-### Data Residency
-
-For GDPR compliance or data residency requirements, use a custom API URL:
-
-```swift
-HimetricaConfig(
-    apiKey: "key",
-    apiUrl: "https://eu.your-instance.com"
-)
 ```
 
 ## Troubleshooting
