@@ -57,6 +57,23 @@ public extension View {
     }
 }
 
+// MARK: - Error Tracking Modifier
+
+public extension View {
+    /// Tracks an error when it occurs
+    /// - Parameters:
+    ///   - error: The error to track
+    ///   - context: Optional additional context
+    /// - Returns: A view that tracks the error
+    func trackError(_ error: Error, context: [String: Any]? = nil) -> some View {
+        self.onAppear {
+            Task { @MainActor in
+                Himetrica.shared.captureError(error, context: context)
+            }
+        }
+    }
+}
+
 // MARK: - App Lifecycle Modifier
 
 /// A view modifier that handles app lifecycle events for analytics

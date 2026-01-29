@@ -11,6 +11,7 @@ A lightweight, privacy-focused analytics SDK for iOS, macOS, tvOS, and watchOS a
 - **Offline support** - Events queued and sent when connectivity is restored
 - **Duration tracking** - Automatic time-on-screen measurement
 - **Deep link attribution** - Track where users came from
+- **Error tracking** - Capture errors, exceptions, and signals automatically
 - **Privacy compliant** - Respects App Tracking Transparency (ATT)
 
 ## Requirements
@@ -27,7 +28,7 @@ Add the package dependency to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/your-org/himetrica-swift", from: "1.0.0")
+    .package(url: "https://github.com/himetrica/himetrica-swift", from: "1.0.0")
 ]
 ```
 
@@ -143,6 +144,54 @@ func onUserLogin(user: User) {
 }
 ```
 
+### 5. Error Tracking
+
+Errors are captured automatically by default (uncaught exceptions and signals). You can also capture errors manually:
+
+```swift
+// Capture a Swift Error
+do {
+    try riskyOperation()
+} catch {
+    Himetrica.shared.captureError(error, context: [
+        "operation": "data_sync",
+        "retry_count": 3
+    ])
+}
+
+// Capture a message with severity
+Himetrica.shared.captureMessage(
+    "User exceeded rate limit",
+    severity: .warning,
+    context: ["user_id": userId]
+)
+```
+
+Use the `.trackError` view modifier to capture errors in SwiftUI views:
+
+```swift
+struct DataView: View {
+    @State private var error: Error?
+
+    var body: some View {
+        ContentView()
+            .task {
+                do {
+                    try await loadData()
+                } catch {
+                    self.error = error
+                }
+            }
+            .overlay {
+                if let error {
+                    ErrorView()
+                        .trackError(error, context: ["view": "DataView"])
+                }
+            }
+    }
+}
+```
+
 ## Configuration
 
 ### Full Configuration Options
@@ -150,13 +199,15 @@ func onUserLogin(user: User) {
 ```swift
 let config = HimetricaConfig(
     apiKey: "your-api-key",
-    apiUrl: "https://app.himetrica.com",  // Custom API URL (self-hosted)
     sessionTimeout: 30 * 60,               // Session timeout (default: 30 min)
     autoTrackScreenViews: true,            // Auto-track NavigationStack
     respectAdTracking: true,               // Respect ATT settings
     enableLogging: false,                  // Debug logging
     maxQueueSize: 1000,                    // Max offline queue size
-    flushInterval: 30                      // Queue flush interval (seconds)
+    flushInterval: 30,                     // Queue flush interval (seconds)
+    captureUncaughtExceptions: true,       // Auto-capture crashes & signals
+    errorRateLimit: 10,                    // Max errors per rate window
+    errorRateLimitWindow: 60               // Rate limit window (seconds)
 )
 
 Himetrica.configure(with: config)
@@ -296,6 +347,8 @@ ContentView()
 | `trackScreen(name:properties:)` | Track a screen view |
 | `track(_:properties:)` | Track a custom event |
 | `identify(name:email:metadata:)` | Identify the current user |
+| `captureError(_:context:)` | Capture an error |
+| `captureMessage(_:severity:context:)` | Capture a message |
 | `setReferrer(from:)` | Set attribution from a URL |
 | `handleScenePhase(_:)` | Handle app lifecycle changes |
 | `flush()` | Force flush the event queue |
@@ -307,13 +360,15 @@ ContentView()
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `apiKey` | `String` | required | Your Himetrica API key |
-| `apiUrl` | `String` | `https://app.himetrica.com` | API endpoint URL |
 | `sessionTimeout` | `TimeInterval` | `1800` (30 min) | Session expiry time |
 | `autoTrackScreenViews` | `Bool` | `true` | Auto-track navigation |
 | `respectAdTracking` | `Bool` | `true` | Respect ATT settings |
 | `enableLogging` | `Bool` | `false` | Enable debug logging |
 | `maxQueueSize` | `Int` | `1000` | Max queued events |
 | `flushInterval` | `TimeInterval` | `30` | Queue flush interval |
+| `captureUncaughtExceptions` | `Bool` | `true` | Auto-capture crashes |
+| `errorRateLimit` | `Int` | `10` | Max errors per window |
+| `errorRateLimitWindow` | `TimeInterval` | `60` | Rate limit window (s) |
 
 ### View Modifiers
 
@@ -321,6 +376,7 @@ ContentView()
 |----------|-------------|
 | `.trackScreen(_:properties:)` | Track when view appears |
 | `.trackOnTap(_:properties:)` | Track on tap gesture |
+| `.trackError(_:context:)` | Capture an error on appear |
 | `.himetricaLifecycle()` | Handle app lifecycle |
 | `.himetricaDeepLink(perform:)` | Handle deep links |
 
@@ -352,17 +408,6 @@ To track regardless of ATT (ensure compliance with Apple guidelines):
 
 ```swift
 HimetricaConfig(apiKey: "key", respectAdTracking: false)
-```
-
-### Data Residency
-
-For GDPR compliance or data residency requirements, use a custom API URL:
-
-```swift
-HimetricaConfig(
-    apiKey: "key",
-    apiUrl: "https://eu.your-instance.com"
-)
 ```
 
 ## Troubleshooting

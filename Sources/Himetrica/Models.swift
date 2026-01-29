@@ -1,5 +1,27 @@
 import Foundation
 
+/// Severity level for error events
+public enum ErrorSeverity: String, Codable {
+    case error, warning, info
+}
+
+/// Represents an error event
+struct ErrorEvent: Codable {
+    let visitorId: String
+    let sessionId: String
+    let type: String           // "error", "unhandledrejection", "console"
+    let message: String
+    let stack: String?
+    let source: String?
+    let lineno: Int?
+    let colno: Int?
+    let severity: String       // "error", "warning", "info"
+    let path: String
+    let userAgent: String
+    let timestamp: Int
+    let context: [String: AnyCodable]?
+}
+
 /// Represents a screen view event
 struct ScreenViewEvent: Codable {
     let visitorId: String

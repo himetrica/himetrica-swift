@@ -11,15 +11,20 @@ import AppTrackingTransparency
 @MainActor
 public final class Himetrica: ObservableObject {
     /// The shared singleton instance
-    public static var shared: Himetrica = {
-        fatalError("Himetrica.configure() must be called before accessing shared instance")
-    }()
+    private static var _shared: Himetrica?
+    public static var shared: Himetrica {
+        guard let instance = _shared else {
+            fatalError("Himetrica.configure() must be called before accessing shared instance")
+        }
+        return instance
+    }
 
     private static var isConfigured = false
 
     private let config: HimetricaConfig
     private let storageManager: StorageManager
     private let networkManager: NetworkManager
+    private var errorTracking: ErrorTracking?
 
     // Screen tracking state
     private var currentScreenId: String?
@@ -36,6 +41,7 @@ public final class Himetrica: ObservableObject {
         self.deviceInfo = DeviceInfo()
 
         setupAppLifecycleObservers()
+        setupErrorTracking()
         log("Initialized with API URL: \(config.apiUrl)")
     }
 
@@ -50,7 +56,7 @@ public final class Himetrica: ObservableObject {
             return
         }
 
-        shared = Himetrica(config: config)
+        _shared = Himetrica(config: config)
         isConfigured = true
     }
 
@@ -231,6 +237,40 @@ public final class Himetrica: ObservableObject {
         sendScreenDuration()
         storageManager.reset()
         log("All data reset")
+    }
+
+    // MARK: - Error Tracking
+
+    /// Captures an error and sends it to Himetrica
+    /// - Parameters:
+    ///   - error: The error to capture
+    ///   - context: Optional additional context
+    public func captureError(_ error: Error, context: [String: Any]? = nil) {
+        errorTracking?.captureError(error, context: context, severity: .error)
+        log("Captured error: \(error.localizedDescription)")
+    }
+
+    /// Captures a message and sends it to Himetrica
+    /// - Parameters:
+    ///   - message: The message to capture
+    ///   - severity: The severity level (defaults to .info)
+    ///   - context: Optional additional context
+    public func captureMessage(_ message: String, severity: ErrorSeverity = .info, context: [String: Any]? = nil) {
+        errorTracking?.captureMessage(message, severity: severity, context: context)
+        log("Captured message: \(message)")
+    }
+
+    private func setupErrorTracking() {
+        let tracker = ErrorTracking(
+            config: config,
+            networkManager: networkManager,
+            storageManager: storageManager,
+            currentPath: { [weak self] in
+                self?.currentScreenName.map { "/\($0.lowercased().replacingOccurrences(of: " ", with: "-"))" } ?? ""
+            }
+        )
+        tracker.setup()
+        self.errorTracking = tracker
     }
 
     // MARK: - Private Helpers

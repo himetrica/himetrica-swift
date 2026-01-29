@@ -26,6 +26,15 @@ public struct HimetricaConfig {
     /// Interval for flushing the event queue in seconds (defaults to 30)
     public let flushInterval: TimeInterval
 
+    /// Whether to automatically capture uncaught exceptions and signals (defaults to true)
+    public let captureUncaughtExceptions: Bool
+
+    /// Maximum number of errors to capture per rate limit window (defaults to 10)
+    public let errorRateLimit: Int
+
+    /// Rate limit window in seconds (defaults to 60)
+    public let errorRateLimitWindow: TimeInterval
+
     /// Creates a new Himetrica configuration
     /// - Parameters:
     ///   - apiKey: The API key for your Himetrica project
@@ -36,6 +45,9 @@ public struct HimetricaConfig {
     ///   - enableLogging: Whether to enable debug logging
     ///   - maxQueueSize: Maximum number of events to queue when offline
     ///   - flushInterval: Interval for flushing the event queue in seconds
+    ///   - captureUncaughtExceptions: Whether to capture uncaught exceptions and signals
+    ///   - errorRateLimit: Maximum number of errors per rate limit window
+    ///   - errorRateLimitWindow: Rate limit window in seconds
     public init(
         apiKey: String,
         apiUrl: String = "https://app.himetrica.com",
@@ -44,7 +56,10 @@ public struct HimetricaConfig {
         respectAdTracking: Bool = true,
         enableLogging: Bool = false,
         maxQueueSize: Int = 1000,
-        flushInterval: TimeInterval = 30
+        flushInterval: TimeInterval = 30,
+        captureUncaughtExceptions: Bool = true,
+        errorRateLimit: Int = 10,
+        errorRateLimitWindow: TimeInterval = 60
     ) {
         self.apiKey = apiKey
         self.apiUrl = apiUrl
@@ -54,5 +69,8 @@ public struct HimetricaConfig {
         self.enableLogging = enableLogging
         self.maxQueueSize = maxQueueSize
         self.flushInterval = flushInterval
+        self.captureUncaughtExceptions = captureUncaughtExceptions
+        self.errorRateLimit = errorRateLimit
+        self.errorRateLimitWindow = errorRateLimitWindow
     }
 }
