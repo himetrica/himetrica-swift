@@ -11,9 +11,13 @@ import AppTrackingTransparency
 @MainActor
 public final class Himetrica: ObservableObject {
     /// The shared singleton instance
-    public static var shared: Himetrica = {
-        fatalError("Himetrica.configure() must be called before accessing shared instance")
-    }()
+    private static var _shared: Himetrica?
+    public static var shared: Himetrica {
+        guard let instance = _shared else {
+            fatalError("Himetrica.configure() must be called before accessing shared instance")
+        }
+        return instance
+    }
 
     private static var isConfigured = false
 
@@ -52,7 +56,7 @@ public final class Himetrica: ObservableObject {
             return
         }
 
-        shared = Himetrica(config: config)
+        _shared = Himetrica(config: config)
         isConfigured = true
     }
 
