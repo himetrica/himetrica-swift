@@ -58,6 +58,12 @@ struct CustomEvent: Codable {
     let platform: String
 }
 
+/// Represents a heartbeat event (lightweight lastSeenAt refresh)
+struct HeartbeatEvent: Codable {
+    let visitorId: String
+    let sessionId: String
+}
+
 /// Represents an identify event
 struct IdentifyEvent: Codable {
     let visitorId: String

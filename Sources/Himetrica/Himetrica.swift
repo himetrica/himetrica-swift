@@ -30,6 +30,7 @@ public final class Himetrica: ObservableObject {
     private var currentScreenId: String?
     private var currentScreenName: String?
     private var screenStartTime: Date?
+    private var backgroundAt: Date?
 
     // Device info (cached)
     private let deviceInfo: DeviceInfo
@@ -110,6 +111,21 @@ public final class Himetrica: ObservableObject {
     }
 
     /// Sends the duration for the current screen
+    private func sendHeartbeat() {
+        let payload = HeartbeatEvent(
+            visitorId: storageManager.getVisitorId(),
+            sessionId: storageManager.getSessionId(timeout: config.sessionTimeout)
+        )
+
+        if let data = try? JSONEncoder().encode(payload) {
+            networkManager.sendBeacon(
+                endpoint: "/api/track/heartbeat?apiKey=\(config.apiKey)",
+                data: data
+            )
+        }
+        log("Heartbeat sent")
+    }
+
     private func sendScreenDuration() {
         guard let screenId = currentScreenId,
               let startTime = screenStartTime else {
@@ -211,10 +227,26 @@ public final class Himetrica: ObservableObject {
     public func handleScenePhase(_ phase: ScenePhase) {
         switch phase {
         case .active:
-            storageManager.updateSessionTimestamp()
+            let awaySeconds = backgroundAt.map { Date().timeIntervalSince($0) } ?? 0
+            backgroundAt = nil
+
+            if awaySeconds >= config.sessionTimeout {
+                // Session expired — create new session and re-track current screen
+                _ = storageManager.getSessionId(timeout: config.sessionTimeout)
+                if let name = currentScreenName {
+                    trackScreen(name: name)
+                }
+            } else if awaySeconds > 5 * 60 {
+                // Away 5+ min but session still valid — lightweight heartbeat
+                storageManager.updateSessionTimestamp()
+                sendHeartbeat()
+            } else {
+                storageManager.updateSessionTimestamp()
+            }
             networkManager.flush()
         case .inactive, .background:
             sendScreenDuration()
+            backgroundAt = Date()
         @unknown default:
             break
         }
@@ -301,6 +333,32 @@ public final class Himetrica: ObservableObject {
         ) { [weak self] _ in
             Task { @MainActor in
                 self?.sendScreenDuration()
+                self?.backgroundAt = Date()
+            }
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                guard let self = self else { return }
+                let awaySeconds = self.backgroundAt.map { Date().timeIntervalSince($0) } ?? 0
+                self.backgroundAt = nil
+
+                if awaySeconds >= self.config.sessionTimeout {
+                    _ = self.storageManager.getSessionId(timeout: self.config.sessionTimeout)
+                    if let name = self.currentScreenName {
+                        self.trackScreen(name: name)
+                    }
+                } else if awaySeconds > 5 * 60 {
+                    self.storageManager.updateSessionTimestamp()
+                    self.sendHeartbeat()
+                } else {
+                    self.storageManager.updateSessionTimestamp()
+                }
+                self.networkManager.flush()
             }
         }
 
