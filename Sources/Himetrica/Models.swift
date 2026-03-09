@@ -44,6 +44,7 @@ struct ScreenViewEvent: Codable {
 struct DurationEvent: Codable {
     let pageViewId: String
     let duration: Int
+    let clickCount: Int?
 }
 
 /// Represents a custom event

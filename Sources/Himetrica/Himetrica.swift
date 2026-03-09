@@ -31,6 +31,7 @@ public final class Himetrica: ObservableObject {
     private var currentScreenName: String?
     private var screenStartTime: Date?
     private var backgroundAt: Date?
+    private var tapCount: Int = 0
 
     // Device info (cached)
     private let deviceInfo: DeviceInfo
@@ -88,6 +89,7 @@ public final class Himetrica: ObservableObject {
         currentScreenId = UUID().uuidString
         currentScreenName = name
         screenStartTime = Date()
+        tapCount = 0
 
         let event = ScreenViewEvent(
             visitorId: storageManager.getVisitorId(),
@@ -140,7 +142,7 @@ public final class Himetrica: ObservableObject {
             return
         }
 
-        let event = DurationEvent(pageViewId: screenId, duration: duration)
+        let event = DurationEvent(pageViewId: screenId, duration: duration, clickCount: tapCount > 0 ? tapCount : nil)
 
         if let data = try? JSONEncoder().encode(event) {
             networkManager.sendBeacon(
@@ -152,6 +154,13 @@ public final class Himetrica: ObservableObject {
         currentScreenId = nil
         screenStartTime = nil
         log("Sent duration: \(duration)s for screen")
+    }
+
+    // MARK: - Tap Tracking
+
+    /// Tracks a user tap/press. Call this from your UI to count interactions per screen.
+    public func trackTap() {
+        tapCount += 1
     }
 
     // MARK: - Custom Events
