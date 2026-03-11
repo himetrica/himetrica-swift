@@ -68,6 +68,7 @@ struct HeartbeatEvent: Codable {
 /// Represents an identify event
 struct IdentifyEvent: Codable {
     let visitorId: String
+    let userId: String?
     let name: String?
     let email: String?
     let metadata: [String: AnyCodable]?

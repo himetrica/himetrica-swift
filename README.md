@@ -133,6 +133,7 @@ Associate analytics data with a user after login:
 ```swift
 func onUserLogin(user: User) {
     Himetrica.shared.identify(
+        userId: user.id,  // Stable ID for cross-device merging
         name: user.name,
         email: user.email,
         metadata: [
@@ -346,7 +347,7 @@ ContentView()
 | `configure(with:)` | Initialize with full configuration |
 | `trackScreen(name:properties:)` | Track a screen view |
 | `track(_:properties:)` | Track a custom event |
-| `identify(name:email:metadata:)` | Identify the current user |
+| `identify(userId:name:email:metadata:)` | Identify the current user (userId enables cross-device merging) |
 | `captureError(_:context:)` | Capture an error |
 | `captureMessage(_:severity:context:)` | Capture a message |
 | `setReferrer(from:)` | Set attribution from a URL |

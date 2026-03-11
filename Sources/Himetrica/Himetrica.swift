@@ -202,21 +202,23 @@ public final class Himetrica: ObservableObject {
 
     /// Identifies the current visitor with additional information
     /// - Parameters:
+    ///   - userId: A stable external user ID for cross-device identification
     ///   - name: The user's name
     ///   - email: The user's email
     ///   - metadata: Additional custom metadata
-    public func identify(name: String? = nil, email: String? = nil, metadata: [String: Any]? = nil) {
+    public func identify(userId: String? = nil, name: String? = nil, email: String? = nil, metadata: [String: Any]? = nil) {
         let encodedMetadata: [String: AnyCodable]? = metadata?.mapValues { AnyCodable($0) }
 
         let event = IdentifyEvent(
             visitorId: storageManager.getVisitorId(),
+            userId: userId,
             name: name,
             email: email,
             metadata: encodedMetadata
         )
 
         networkManager.sendEvent(endpoint: "/api/track/identify", data: event)
-        log("Identified user: \(name ?? "unknown")")
+        log("Identified user: \(userId ?? name ?? "unknown")")
     }
 
     // MARK: - Deep Link Attribution
