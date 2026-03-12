@@ -39,8 +39,9 @@ public final class Himetrica: ObservableObject {
     private init(config: HimetricaConfig) {
         self.config = config
         self.storageManager = StorageManager()
-        self.networkManager = NetworkManager(config: config, storageManager: storageManager)
         self.deviceInfo = DeviceInfo()
+        let ua = "Himetrica-iOS/\(deviceInfo.appVersion) (\(deviceInfo.deviceModel); iOS \(deviceInfo.osVersion))"
+        self.networkManager = NetworkManager(config: config, storageManager: storageManager, userAgent: ua)
 
         setupAppLifecycleObservers()
         setupErrorTracking()
@@ -304,7 +305,7 @@ public final class Himetrica: ObservableObject {
     }
 
     private func setupErrorTracking() {
-        let tracker = ErrorTracking(
+        self.errorTracking = ErrorTracking(
             config: config,
             networkManager: networkManager,
             storageManager: storageManager,
@@ -312,8 +313,6 @@ public final class Himetrica: ObservableObject {
                 self?.currentScreenName.map { "/\($0.lowercased().replacingOccurrences(of: " ", with: "-"))" } ?? ""
             }
         )
-        tracker.setup()
-        self.errorTracking = tracker
     }
 
     // MARK: - Private Helpers

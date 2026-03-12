@@ -12,9 +12,12 @@ final class NetworkManager {
     private let queue = DispatchQueue(label: "com.himetrica.network", qos: .utility)
     private var isOnline = true
 
-    init(config: HimetricaConfig, storageManager: StorageManager) {
+    private let userAgent: String
+
+    init(config: HimetricaConfig, storageManager: StorageManager, userAgent: String = "Himetrica-iOS") {
         self.config = config
         self.storageManager = storageManager
+        self.userAgent = userAgent
 
         let sessionConfig = URLSessionConfiguration.default
         sessionConfig.timeoutIntervalForRequest = 30
@@ -98,6 +101,7 @@ final class NetworkManager {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(config.apiKey, forHTTPHeaderField: "X-API-Key")
+        request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
         request.httpBody = data
 
         let task = session.dataTask(with: request) { [weak self] _, response, error in

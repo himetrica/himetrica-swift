@@ -11,7 +11,7 @@ A lightweight, privacy-focused analytics SDK for iOS, macOS, tvOS, and watchOS a
 - **Offline support** - Events queued and sent when connectivity is restored
 - **Duration tracking** - Automatic time-on-screen measurement
 - **Deep link attribution** - Track where users came from
-- **Error tracking** - Capture errors, exceptions, and signals automatically
+- **Error tracking** - Capture errors manually with rate limiting and deduplication
 - **Privacy compliant** - Respects App Tracking Transparency (ATT)
 
 ## Requirements
@@ -147,7 +147,7 @@ func onUserLogin(user: User) {
 
 ### 5. Error Tracking
 
-Errors are captured automatically by default (uncaught exceptions and signals). You can also capture errors manually:
+Capture errors manually in your catch blocks. Errors are rate-limited (max 10/minute) and deduplicated (5-minute window) to avoid flooding.
 
 ```swift
 // Capture a Swift Error
@@ -206,7 +206,6 @@ let config = HimetricaConfig(
     enableLogging: false,                  // Debug logging
     maxQueueSize: 1000,                    // Max offline queue size
     flushInterval: 30,                     // Queue flush interval (seconds)
-    captureUncaughtExceptions: true,       // Auto-capture crashes & signals
     errorRateLimit: 10,                    // Max errors per rate window
     errorRateLimitWindow: 60               // Rate limit window (seconds)
 )
@@ -367,7 +366,6 @@ ContentView()
 | `enableLogging` | `Bool` | `false` | Enable debug logging |
 | `maxQueueSize` | `Int` | `1000` | Max queued events |
 | `flushInterval` | `TimeInterval` | `30` | Queue flush interval |
-| `captureUncaughtExceptions` | `Bool` | `true` | Auto-capture crashes |
 | `errorRateLimit` | `Int` | `10` | Max errors per window |
 | `errorRateLimitWindow` | `TimeInterval` | `60` | Rate limit window (s) |
 
