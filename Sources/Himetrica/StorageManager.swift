@@ -67,6 +67,15 @@ final class StorageManager {
         userDefaults.set(Date(), forKey: Keys.sessionTimestamp)
     }
 
+    /// Returns the time interval since the last session activity, or nil if no timestamp is stored.
+    /// Used to detect session expiry when the app was killed by iOS and backgroundAt is lost.
+    func timeSinceLastSessionActivity() -> TimeInterval? {
+        guard let lastTimestamp = userDefaults.object(forKey: Keys.sessionTimestamp) as? Date else {
+            return nil
+        }
+        return Date().timeIntervalSince(lastTimestamp)
+    }
+
     // MARK: - Referrer (deep link attribution)
 
     func getOriginalReferrer() -> String {

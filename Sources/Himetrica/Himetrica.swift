@@ -239,7 +239,14 @@ public final class Himetrica: ObservableObject {
     public func handleScenePhase(_ phase: ScenePhase) {
         switch phase {
         case .active:
-            let awaySeconds = backgroundAt.map { Date().timeIntervalSince($0) } ?? 0
+            // When iOS kills the app in the background, backgroundAt is nil on relaunch.
+            // Use stored session timestamp to determine the real gap.
+            let awaySeconds: TimeInterval
+            if let bg = backgroundAt {
+                awaySeconds = Date().timeIntervalSince(bg)
+            } else {
+                awaySeconds = storageManager.timeSinceLastSessionActivity() ?? config.sessionTimeout
+            }
             backgroundAt = nil
 
             if awaySeconds >= config.sessionTimeout {
@@ -354,7 +361,16 @@ public final class Himetrica: ObservableObject {
         ) { [weak self] _ in
             Task { @MainActor in
                 guard let self = self else { return }
-                let awaySeconds = self.backgroundAt.map { Date().timeIntervalSince($0) } ?? 0
+
+                // When iOS kills the app in the background, backgroundAt is nil on relaunch.
+                // In that case, check the stored session timestamp to determine the real gap.
+                let awaySeconds: TimeInterval
+                if let bg = self.backgroundAt {
+                    awaySeconds = Date().timeIntervalSince(bg)
+                } else {
+                    // App was killed — use stored session timestamp to calculate gap
+                    awaySeconds = self.storageManager.timeSinceLastSessionActivity() ?? self.config.sessionTimeout
+                }
                 self.backgroundAt = nil
 
                 if awaySeconds >= self.config.sessionTimeout {
