@@ -422,7 +422,7 @@ private struct DeviceInfo {
         self.screenWidth = Int(screen.bounds.width * screen.scale)
         self.screenHeight = Int(screen.bounds.height * screen.scale)
         self.osVersion = UIDevice.current.systemVersion
-        self.deviceModel = UIDevice.current.model
+        self.deviceModel = DeviceInfo.machineModel()
         #else
         self.screenWidth = 0
         self.screenHeight = 0
@@ -433,4 +433,162 @@ private struct DeviceInfo {
         self.appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
         self.locale = Locale.current.identifier
     }
+
+    /// Returns the marketing device name (e.g. "iPhone 15 Pro") via sysctlbyname hw.machine lookup.
+    /// Falls back to the raw identifier if unknown, or UIDevice.current.model if the syscall fails.
+    private static func machineModel() -> String {
+        var size = 0
+        sysctlbyname("hw.machine", nil, &size, nil, 0)
+        guard size > 0 else {
+            #if canImport(UIKit)
+            return UIDevice.current.model
+            #else
+            return "Unknown"
+            #endif
+        }
+        var machine = [CChar](repeating: 0, count: size)
+        sysctlbyname("hw.machine", &machine, &size, nil, 0)
+        let identifier = String(cString: machine)
+        return DeviceModelMap.name(for: identifier)
+    }
+}
+
+// MARK: - Device Model Map
+
+private enum DeviceModelMap {
+    static func name(for identifier: String) -> String {
+        // Simulator: return the simulated device from environment
+        if identifier == "x86_64" || identifier == "arm64" {
+            return ProcessInfo.processInfo.environment["SIMULATOR_MODEL_IDENTIFIER"]
+                .flatMap { name(for: $0) } ?? identifier
+        }
+        return models[identifier] ?? identifier
+    }
+
+    // swiftlint:disable:next function_body_length
+    private static let models: [String: String] = [
+        // MARK: iPhone
+        "iPhone8,1": "iPhone 6s",
+        "iPhone8,2": "iPhone 6s Plus",
+        "iPhone8,4": "iPhone SE",
+        "iPhone9,1": "iPhone 7",
+        "iPhone9,2": "iPhone 7 Plus",
+        "iPhone9,3": "iPhone 7",
+        "iPhone9,4": "iPhone 7 Plus",
+        "iPhone10,1": "iPhone 8",
+        "iPhone10,2": "iPhone 8 Plus",
+        "iPhone10,3": "iPhone X",
+        "iPhone10,4": "iPhone 8",
+        "iPhone10,5": "iPhone 8 Plus",
+        "iPhone10,6": "iPhone X",
+        "iPhone11,2": "iPhone XS",
+        "iPhone11,4": "iPhone XS Max",
+        "iPhone11,6": "iPhone XS Max",
+        "iPhone11,8": "iPhone XR",
+        "iPhone12,1": "iPhone 11",
+        "iPhone12,3": "iPhone 11 Pro",
+        "iPhone12,5": "iPhone 11 Pro Max",
+        "iPhone12,8": "iPhone SE 2",
+        "iPhone13,1": "iPhone 12 mini",
+        "iPhone13,2": "iPhone 12",
+        "iPhone13,3": "iPhone 12 Pro",
+        "iPhone13,4": "iPhone 12 Pro Max",
+        "iPhone14,2": "iPhone 13 Pro",
+        "iPhone14,3": "iPhone 13 Pro Max",
+        "iPhone14,4": "iPhone 13 mini",
+        "iPhone14,5": "iPhone 13",
+        "iPhone14,6": "iPhone SE 3",
+        "iPhone14,7": "iPhone 14",
+        "iPhone14,8": "iPhone 14 Plus",
+        "iPhone15,2": "iPhone 14 Pro",
+        "iPhone15,3": "iPhone 14 Pro Max",
+        "iPhone15,4": "iPhone 15",
+        "iPhone15,5": "iPhone 15 Plus",
+        "iPhone16,1": "iPhone 15 Pro",
+        "iPhone16,2": "iPhone 15 Pro Max",
+        "iPhone17,1": "iPhone 16 Pro",
+        "iPhone17,2": "iPhone 16 Pro Max",
+        "iPhone17,3": "iPhone 16",
+        "iPhone17,4": "iPhone 16 Plus",
+        "iPhone17,5": "iPhone 16e",
+
+        // MARK: iPad
+        "iPad5,1": "iPad mini 4",
+        "iPad5,2": "iPad mini 4",
+        "iPad5,3": "iPad Air 2",
+        "iPad5,4": "iPad Air 2",
+        "iPad6,3": "iPad Pro 9.7\"",
+        "iPad6,4": "iPad Pro 9.7\"",
+        "iPad6,7": "iPad Pro 12.9\"",
+        "iPad6,8": "iPad Pro 12.9\"",
+        "iPad6,11": "iPad 5",
+        "iPad6,12": "iPad 5",
+        "iPad7,1": "iPad Pro 12.9\" 2",
+        "iPad7,2": "iPad Pro 12.9\" 2",
+        "iPad7,3": "iPad Pro 10.5\"",
+        "iPad7,4": "iPad Pro 10.5\"",
+        "iPad7,5": "iPad 6",
+        "iPad7,6": "iPad 6",
+        "iPad7,11": "iPad 7",
+        "iPad7,12": "iPad 7",
+        "iPad8,1": "iPad Pro 11\"",
+        "iPad8,2": "iPad Pro 11\"",
+        "iPad8,3": "iPad Pro 11\"",
+        "iPad8,4": "iPad Pro 11\"",
+        "iPad8,5": "iPad Pro 12.9\" 3",
+        "iPad8,6": "iPad Pro 12.9\" 3",
+        "iPad8,7": "iPad Pro 12.9\" 3",
+        "iPad8,8": "iPad Pro 12.9\" 3",
+        "iPad8,9": "iPad Pro 11\" 2",
+        "iPad8,10": "iPad Pro 11\" 2",
+        "iPad8,11": "iPad Pro 12.9\" 4",
+        "iPad8,12": "iPad Pro 12.9\" 4",
+        "iPad11,1": "iPad mini 5",
+        "iPad11,2": "iPad mini 5",
+        "iPad11,3": "iPad Air 3",
+        "iPad11,4": "iPad Air 3",
+        "iPad11,6": "iPad 8",
+        "iPad11,7": "iPad 8",
+        "iPad12,1": "iPad 9",
+        "iPad12,2": "iPad 9",
+        "iPad13,1": "iPad Air 4",
+        "iPad13,2": "iPad Air 4",
+        "iPad13,4": "iPad Pro 11\" 3",
+        "iPad13,5": "iPad Pro 11\" 3",
+        "iPad13,6": "iPad Pro 11\" 3",
+        "iPad13,7": "iPad Pro 11\" 3",
+        "iPad13,8": "iPad Pro 12.9\" 5",
+        "iPad13,9": "iPad Pro 12.9\" 5",
+        "iPad13,10": "iPad Pro 12.9\" 5",
+        "iPad13,11": "iPad Pro 12.9\" 5",
+        "iPad13,16": "iPad Air 5",
+        "iPad13,17": "iPad Air 5",
+        "iPad13,18": "iPad 10",
+        "iPad13,19": "iPad 10",
+        "iPad14,1": "iPad mini 6",
+        "iPad14,2": "iPad mini 6",
+        "iPad14,3": "iPad Pro 11\" 4",
+        "iPad14,4": "iPad Pro 11\" 4",
+        "iPad14,5": "iPad Pro 12.9\" 6",
+        "iPad14,6": "iPad Pro 12.9\" 6",
+        "iPad14,8": "iPad Air 11\" M2",
+        "iPad14,9": "iPad Air 11\" M2",
+        "iPad14,10": "iPad Air 13\" M2",
+        "iPad14,11": "iPad Air 13\" M2",
+        "iPad15,3": "iPad Air 11\" M3",
+        "iPad15,4": "iPad Air 11\" M3",
+        "iPad15,5": "iPad Air 13\" M3",
+        "iPad15,6": "iPad Air 13\" M3",
+        "iPad15,7": "iPad mini 7",
+        "iPad15,8": "iPad mini 7",
+        "iPad16,1": "iPad Pro 11\" M4",
+        "iPad16,2": "iPad Pro 11\" M4",
+        "iPad16,3": "iPad Pro 13\" M4",
+        "iPad16,4": "iPad Pro 13\" M4",
+        "iPad16,5": "iPad 11",
+        "iPad16,6": "iPad 11",
+
+        // MARK: iPod touch
+        "iPod9,1": "iPod touch 7",
+    ]
 }
